@@ -1,8 +1,8 @@
 
 
-function Individual(lifespan, dna) {
+function Individual(lifespan, mutationRate, dna) {
     this.radius = 15;
-    this.dna = dna ? dna : new DNA(lifespan);
+    this.dna = dna ? dna : new DNA(lifespan, mutationRate);
     this.pos;
     this.vel;
     this.acc;
@@ -10,6 +10,7 @@ function Individual(lifespan, dna) {
     this.tickCompleted;
     this.stuck;
     this.mutationCount = 0;
+    this.maxVelocity = 3.0;
     
     this.reset = function() {
         this.pos = createVector(width/2, height - 50);
@@ -48,10 +49,10 @@ function Individual(lifespan, dna) {
       this.acc.add(force);
     }
   
-    this.mate = function(lifespan, partner) {
-      let newDna = this.dna.crossover(lifespan, partner.dna);
+    this.mate = function(lifespan, mutationRate, partner) {
+      let newDna = this.dna.crossover(lifespan, mutationRate, partner.dna);
       let mutationCount = newDna.mutate();
-      let child = new Individual(lifespan, newDna);
+      let child = new Individual(lifespan, mutationRate, newDna);
       child.mutationCount += mutationCount;
       return child;
     }
@@ -88,7 +89,7 @@ function Individual(lifespan, dna) {
   
       this.applyForce(this.dna.genes[tick]);
   
-      this.vel.add(this.acc);
+      this.vel.add(this.acc).limit(this.maxVelocity);
       this.pos.add(this.vel);
       this.acc.mult(0);
     }

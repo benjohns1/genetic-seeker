@@ -1,9 +1,9 @@
-function DNA(lifespan, randomize) {
+function DNA(lifespan, mutationRate, randomize) {
     this.genes = [];
-    this.mutationRate = 0.02;
+    this.mutationRate = mutationRate === undefined ? 0.02 : mutationRate;
   
     let randomGene = function() {
-      return p5.Vector.random2D().setMag(maxForce);
+      return p5.Vector.random2D().limit(maxForce);
     };
     
     if (randomize !== false) {
@@ -12,8 +12,8 @@ function DNA(lifespan, randomize) {
       }
     }
   
-    this.crossover = function(lifespan, partner) {
-      let newDna = new DNA(lifespan, false);
+    this.crossover = function(lifespan, mutationRate, partner) {
+      let newDna = new DNA(lifespan, mutationRate, false);
       var mid = floor(random(this.genes.length));
       for (var i = 0; i < this.genes.length; i++) {
         if (i > mid) {

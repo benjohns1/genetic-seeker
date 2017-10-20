@@ -1,22 +1,26 @@
 
-var population;
-var populationLifespan = 100;
-var populationSize = 100;
-var target;
-var rects;
-var maxForce = 0.3;
+let population;
+let populationLifespan = 100;
+let populationSize = 100;
+let target;
+let rects;
+let maxForce = 0.5;
+let pruneSaveRate = 0.5; // while pruning, chance that a below-average individual will be saved for next generation
+let pruneMutateRate = 0.01; // during population pruing, chance that a saved individual may be mutated
+let mutationRate = 0.02;
 
-var minWidth = 600;
-var minHeight = 600;
+let minWidth = 600;
+let minHeight = 600;
 
 function setup() {
   createCanvas(windowWidth < minWidth ? minWidth : windowWidth, windowHeight < minHeight ? minHeight : windowHeight);
-  population = new Population(populationLifespan, populationSize);
+  population = new Population(populationLifespan, populationSize, mutationRate, pruneSaveRate, pruneMutateRate);
   target = createVector(width/2, 50);
   
   rects = [
-    { x: width / 2 - 150, y: height / 4, w: width / 2, h: 50},
-    { x: 0, y: height / 2, w: height / 2, h: 20}
+    { x: width / 2 - 150, y: height * 0.25, w: width / 8, h: 100},
+    { x: width / 2 - 300, y: height * 0.7, w: width / 6, h: 20},
+    { x: width / 2 + 200, y: height * 0.4, w: 20, h: 100},
   ];
 }
 
