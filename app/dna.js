@@ -20,11 +20,16 @@ function DNA(lifespan, mutationRate, randomize) {
   this.crossover = function (lifespan, mutationRate, partner) {
     let newDna = new DNA(lifespan, mutationRate, false);
     var mid = floor(random(this.genes.length));
-    for (var i = 0; i < this.genes.length; i++) {
-      if (i > mid) {
+    for (var i = 0; i < lifespan; i++) {
+      if (i > mid && i < this.genes.length) {
+        // Use gene from this parent
         newDna.genes[i] = this.genes[i];
-      } else {
+      } else if (i < partner.genes.length) {
+        // Use gene from partner
         newDna.genes[i] = partner.genes[i];
+      } else {
+        // This child has more genes than parents, randomly generate
+        newDna.genes[i] = randomGene();
       }
     }
     return newDna;

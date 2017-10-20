@@ -1,7 +1,8 @@
-function Population(lifespan, popsize, mutationRate, pruneSaveRate, pruneMutateRate) {
+function Population(lifespan, popsize, mutationRate, pruneSaveRate, pruneMutateRate, lifespanRate) {
   this.individuals = [];
   this.popsize = popsize === undefined ? 0 : popsize;
   this.lifespan = lifespan === undefined ? 100 : lifespan;
+  this.lifespanRate = lifespanRate === undefined ? 0.1 : lifespanRate;
   this.mutationRate = mutationRate === undefined ? 0.02 : mutationRate;
   this.pruneSaveRate = pruneSaveRate === undefined ? 0.5 : pruneSaveRate;
   this.pruneMutateRate = pruneMutateRate === undefined ? 0.01 : pruneMutateRate;
@@ -9,15 +10,17 @@ function Population(lifespan, popsize, mutationRate, pruneSaveRate, pruneMutateR
   this.totalFitness = 0;
   this.maxFitness = 0;
   this.minFitness = Infinity;
-  this.paused = false;
+  this.paused = true;
   this.render = true;
-  this.renderStats = true;
+  this.renderInfo = false;
+  this.renderStats = false;
   this.generation = 1;
   this.newChildren = this.popsize;
   this.previousMaxFitness = 0;
   this.previousMinFitness = 0;
   this.previousTotalFitness = 0;
   this.mutationCount = 0;
+  this.totalGenes = 0;
   this.bestOverallFitness = 0;
   this.highestOverallTotalFitness = 0;
   this.maxOverallMutations = 0;
@@ -44,13 +47,21 @@ function Population(lifespan, popsize, mutationRate, pruneSaveRate, pruneMutateR
     this.render = !this.render;
     return this.render;
   }
+  
+  /**
+   * Turns on/off rendering of generation info
+   */
+  this.toggleRenderInfo = function () {
+    this.renderInfo = !this.renderInfo;
+    return this.renderInfo;
+  }
 
   /**
    * Turns on/off rendering of stats
    */
   this.toggleRenderStats = function () {
     this.renderStats = !this.renderStats;
-    return this.render;
+    return this.renderStats;
   }
 
   /**
@@ -60,8 +71,22 @@ function Population(lifespan, popsize, mutationRate, pruneSaveRate, pruneMutateR
     this.totalFitness = 0;
     this.maxFitness = 0;
     this.minFitness = Infinity;
+    let countDone = 0;
+    let lastTick = 0;
     this.individuals.forEach(function (individual) {
       individual.calcFitness();
+
+      // Check if individual has reached target or is stuck
+      if (individual.tickCompleted || individual.tickStuck) {
+        countDone++;
+        if (individual.tickCompleted > lastTick) {
+          lastTick = individual.tickCompleted;
+        } else if (individual.tickStuck > lastTick) {
+          lastTick = individual.tickStuck;
+        }
+      }
+
+      // Update population fitness stats
       this.totalFitness += individual.fitness;
       if (individual.fitness > this.maxFitness) {
         this.maxFitness = individual.fitness;
@@ -70,6 +95,11 @@ function Population(lifespan, popsize, mutationRate, pruneSaveRate, pruneMutateR
         this.minFitness = individual.fitness;
       }
     }, this);
+
+    // If all individuals were done, decrease population lifespan to last tick
+    if (countDone >= this.individuals.length) {
+      this.lifespan = max(lastTick, 10);
+    }
   };
 
   /**
@@ -122,7 +152,7 @@ function Population(lifespan, popsize, mutationRate, pruneSaveRate, pruneMutateR
       this.bestOverallFitness = this.maxFitness;
     } else {
       // Increase population lifespan if fitness didn't improve
-      this.lifespan++;
+      this.lifespan += min(floor(this.lifespan * this.lifespanRate), 100);
     }
     this.previousMaxFitness = this.maxFitness;
     this.previousMinFitness = this.minFitness;
@@ -170,6 +200,7 @@ function Population(lifespan, popsize, mutationRate, pruneSaveRate, pruneMutateR
         }
       }, this);
 
+      this.totalGenes = this.individuals.reduce((acc, curr) => acc + curr.dna.genes.length, 0);
       if (this.mutationCount > this.maxOverallMutations) {
         this.maxOverallMutations = this.mutationCount;
       }
@@ -210,7 +241,9 @@ function Population(lifespan, popsize, mutationRate, pruneSaveRate, pruneMutateR
 
     if (this.render) {
       // Draw generation info and stats to canvas
-      this.drawInfo();
+      if (this.renderInfo) {
+        this.drawInfo();
+      }
       if (this.renderStats) {
         this.drawStats();
       }
@@ -220,7 +253,11 @@ function Population(lifespan, popsize, mutationRate, pruneSaveRate, pruneMutateR
       textAlign(CENTER);
       textSize(32);
       textStyle(BOLD);
-      text("Generation: " + this.generation, 0, height / 2, width);
+      fill(200, 200, 200, 255);
+      text("Generation " + this.generation, 0, height / 2, width);
+      textSize(16);
+      text("Fitness " + this.maxFitness.toFixed(2), 0, height / 2 + 70, width);
+      text("Tick " + this.tick + " / " + this.lifespan, 0, height / 2 + 40, width);
       pop();
     }
 
@@ -311,12 +348,11 @@ function Population(lifespan, popsize, mutationRate, pruneSaveRate, pruneMutateR
 
   this.drawInfo = function () {
     let infoPairs = [
-      ["This Generation:", this.generation],
+      ["Generation:", this.generation],
       ["Tick: ", this.tick + " / " + this.lifespan],
-      ["Population:", this.popsize],
-      ["New children:", this.newChildren],
-      ["Mutations:", this.mutationCount],
-      ["\nLast Generation:", "\n" + (this.generation > 0 ? this.generation - 1 : 0)],
+      ["New children:", this.newChildren + " / " + this.popsize],
+      ["Mutations:", this.mutationCount + " / " + this.totalGenes],
+      ["\nLast generation:", "\n" + (this.generation > 0 ? this.generation - 1 : 0)],
       ["Total fitness:", this.previousTotalFitness.toFixed(2)],
       ["Min fitness:", this.previousMinFitness.toFixed(2)],
       ["Max fitness:", this.previousMaxFitness.toFixed(2)],

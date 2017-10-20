@@ -8,54 +8,23 @@ function Individual(lifespan, mutationRate, dna) {
   this.acc;
   this.fitness;
   this.tickCompleted;
-  this.stuck;
+  this.tickStuck;
   this.mutationCount = 0;
-  this.maxVelocity = 3.0;
 
   /**
    * Resets individual with starting values
    */
   this.reset = function () {
-    this.pos = createVector(width / 2, height - 50);
+    this.pos = createVector(100, height - 100);
     this.vel = createVector();
     this.acc = createVector();
     this.fitness = 0.0;
     this.tickCompleted = null;
-    this.stuck = false;
+    this.tickStuck = null;
   };
 
   // Reset newly created individuals
   this.reset();
-
-  /**
-   * Add a force to the individual's acceleration vector
-   */
-  this.applyForce = function (force) {
-
-    // Check for collisions
-    if (rects.some(function (r) {
-      if (this.pos.x > r.x && this.pos.x < r.x + r.w
-        && this.pos.y > r.y && this.pos.y < r.y + r.h) {
-        return true;
-      }
-
-      if (this.pos.x > width || this.pos.x < 0) {
-        return true;
-      }
-
-      if (this.pos.y > height || this.pos.y < 0) {
-        return true;
-      }
-
-    }, this)) {
-      // Collision detected, set velocity to 0
-      this.vel = createVector(0, 0, 0);
-      this.stuck = true;
-      return;
-    }
-
-    this.acc.add(force);
-  }
 
   /**
    * Mate this individual with a partner, mutate it, and return a new child individual
@@ -73,19 +42,20 @@ function Individual(lifespan, mutationRate, dna) {
    */
   this.calcFitness = function () {
 
-    let d = dist(this.pos.x, this.pos.y, target.x, target.y);
+    let dFit = 1000 / Math.max(1, dist(this.pos.x, this.pos.y, target.x, target.y));
     if (this.tickCompleted) {
-      // Individual arrived at goal, use time to calculate fitness
-      this.fitness = (1000 / d) * (populationLifespan / this.tickCompleted);
+      // Individual arrived at goal, use best time to calculate fitness
+      let tFit = pow((1 + (1 / this.tickCompleted)), 2);
+      this.fitness = dFit * tFit;
       return;
     }
 
     // Still finding path
-    this.fitness = 1000 / d;
+    this.fitness = dFit;
 
-    if (this.stuck) {
+    if (this.tickStuck) {
       // Individual stuck, penalty
-      this.fitness /= 10;
+      this.fitness /= 2;
       return;
     }
   }
@@ -94,19 +64,31 @@ function Individual(lifespan, mutationRate, dna) {
    * Update individual this tick simulation
    */
   this.update = function (tick) {
+    
+    if (this.tickCompleted || this.tickStuck) {
+      return;
+    }
 
     let d = dist(this.pos.x, this.pos.y, target.x, target.y);
     if (d < this.radius) {
       this.tickCompleted = tick;
-    }
-
-    if (this.tickCompleted) {
       return;
     }
+    
+    // Check for screen edge & obstacle collisions
+    if (this.pos.x < 0 || this.pos.x > width || this.pos.y < 0 || this.pos.y > height
+      || rectangles.some((r) => r.inBounds(this.pos.x, this.pos.y), this)) {
+        // Collision detected, set velocity to 0
+        this.vel.mult(0);
+        this.acc.mult(0);
+        this.tickStuck = tick;
+        return;
+    }
 
-    this.applyForce(this.dna.genes[tick]);
-
-    this.vel.add(this.acc).limit(this.maxVelocity);
+    // Add acceleration vector and update velocity/position
+    this.acc.add(this.dna.genes[tick]);
+    this.vel.mult(dampenVelocityRate); // dampen velocity
+    this.vel.add(this.acc);
     this.pos.add(this.vel);
     this.acc.mult(0);
   }
@@ -115,8 +97,11 @@ function Individual(lifespan, mutationRate, dna) {
    * Draw individual to screen
    */
   this.draw = function () {
+    let color = this.tickStuck ? [255, 50, 50, 50] :
+      (this.tickCompleted ? [20, 200, 100, 100] :
+      [50, 100, 200, 100]);
     push();
-    fill(50, 100, 200, 100);
+    fill(color);
     translate(this.pos.x, this.pos.y);
     rotate(this.vel.heading());
     rectMode(CENTER);

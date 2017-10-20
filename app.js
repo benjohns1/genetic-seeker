@@ -1,36 +1,35 @@
 // Hyperparameters
 let populationLifespan = 100; // initial lifespan of population (will naturally increase if fitness is not improving)
+let lifespanRate = 0.1;       // if fitness isn't improving, rate at which lifespan is increased
 let populationSize = 100;     // fixed population size
-let maxForce = 0.5;           // maximum force/acceleration allowed per tick
-let pruneSaveRate = 0.5;      // while pruning population between generations, probability that a below-average individual will be saved for next generation
+let maxForce = 0.8;           // maximum force/acceleration allowed per tick
+let dampenVelocityRate = 0.99;// rate that velocity is dampened per tick
+let pruneSaveRate = 0.4;      // while pruning population between generations, probability that a below-average individual will be saved for next generation
 let pruneMutateRate = 0.01;   // while pruning, probability that a saved individual may be mutated
-let mutationRate = 0.02;      // when a new child individual is created, probability that a gene will mutate
+let mutationRate = 0.03;      // when a new child individual is created, probability that a gene will mutate
 
 // Minimum canvas size
 let minWidth = 600;
 let minHeight = 600;
 
 // Global simulation vars
-let population;     // population of individuals
-let target;         // target "goal" point of individuals
-let rects;          // rectangular obstacles
-let controls = {};  // play/pause/render controls
-let render = true;  // global render flag
+let population;         // population of individuals
+let target;             // target "goal" point of individuals
+let rectangles = [];    // rectangular obstacles
+let controls = {};      // play/pause/render controls
+let render = true;      // global render flag
+let setupPhase = true;  // true during intiial setup phase
 
 /**
  * Setup canvas and simulation
  */
 function setup() {
   createCanvas(windowWidth < minWidth ? minWidth : windowWidth, windowHeight < minHeight ? minHeight : windowHeight);
-  population = new Population(populationLifespan, populationSize, mutationRate, pruneSaveRate, pruneMutateRate);
-  target = createVector(width / 2, 50);
+  population = new Population(populationLifespan, populationSize, mutationRate, pruneSaveRate, pruneMutateRate, lifespanRate);
+  target = createVector(width - 100, 100);
 
-  // Obstacles
-  rects = [
-    { x: width / 2 - 150, y: height * 0.25, w: width / 8, h: 100 },
-    { x: width / 2 - 300, y: height * 0.7, w: width / 6, h: 20 },
-    { x: width / 2 + 200, y: height * 0.4, w: 20, h: 100 },
-  ];
+  // Initial obstacle
+  rectangles.push(new ShapePolygon([[width / 2 - 200, height / 2 - 10], [width / 2 + 200, height / 2 - 10], [width / 2 + 200, height / 2 + 10], [width / 2 - 200, height / 2 + 10]]));
 
   // Controls
   let x = width - 100, y = 10;
@@ -55,11 +54,71 @@ function mouseClicked() {
   if ((population.paused && controls.play.inBounds(mouseX, mouseY))
     || (!population.paused && controls.pause.inBounds(mouseX, mouseY))) {
     population.togglePause();
+    if (setupPhase) {
+      setupPhase = false;
+      population.renderInfo = true;
+    }
   } else if (controls.render.inBounds(mouseX, mouseY)) {
     render = population.toggleRender();
   } else if (population.render && controls.renderStats.inBounds(mouseX, mouseY)) {
-    render = population.toggleRenderStats();
+    population.toggleRenderStats();
   }
+
+  // During setup phase only
+  if (!setupPhase) {
+    return;
+  }
+
+  // Remove obstacle if ctrl-click
+  if (!keyIsDown(CONTROL)) {
+    return;
+  }
+  let removeIndex;
+  if (rectangles.some((r, index) => {
+    if (r.inBounds(mouseX, mouseY)) {
+      removeIndex = index;
+      return true;
+    }
+  })) {
+    rectangles.splice(removeIndex, 1);
+  }
+}
+
+// Holds currently drawing obstacle during setup phase
+let currentRect = {};
+
+/**
+ * Start drawing obstacle in setup phase
+ */
+function mousePressed() {
+  if (!setupPhase) {
+    return;
+  }
+  currentRect.x = mouseX;
+  currentRect.y = mouseY;
+}
+
+/**
+ * Draw obstacles in setup phase
+ */
+function mouseDragged() {
+  if (!setupPhase || !currentRect.x) {
+    return;
+  }
+  currentRect.w = mouseX - currentRect.x;
+  currentRect.h = mouseY - currentRect.y;
+}
+
+/**
+ * Complete drawing, save obstacle
+ */
+function mouseReleased() {
+  if (!setupPhase || !currentRect.x) {
+    return;
+  }
+  let r = currentRect;
+  rectangles.push(new ShapePolygon([[r.x, r.y], [r.x + r.w, r.y], [r.x + r.w, r.y + r.h], [r.x, r.y + r.h]]));
+  currentRect = {};
 }
 
 /**
@@ -80,6 +139,10 @@ function draw() {
   if (render) {
     controls.renderStats.draw();
   }
+  if (setupPhase) {
+    textAlign(CENTER);
+    text("Draw some obstacles on the canvas, then click play on the right!\n\nHold down CTRL + click to remove obstacles.\n\nThe bubbles will try to reach the green goal using a genetic algorithm.", 0, 24, width);
+  }
   pop();
 
   // Run simulation
@@ -92,12 +155,22 @@ function draw() {
   }
   
   // Draw target
-  fill(255, 255, 0);
-  ellipse(target.x, target.y, 10, 10);
+  push();
+  fill(20, 200, 100, 100);
+  ellipse(target.x, target.y, 20, 20);
+  ellipse(target.x, target.y, 30, 30);
+  ellipse(target.x, target.y, 40, 40);
 
   // Draw obstacles
-  fill(200, 200, 200);
-  rects.forEach(function (r) {
-    rect(r.x, r.y, r.w, r.h);
+  noStroke();
+  fill(150, 50, 50);
+  rectangles.forEach(function (r) {
+    r.draw();
   });
+  if (currentRect.w) {
+    stroke(150, 100, 100);
+    fill(150, 50, 50, 100);
+    rect(currentRect.x, currentRect.y, currentRect.w, currentRect.h);
+  }
+  pop();
 }
