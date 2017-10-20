@@ -11,6 +11,7 @@ function Population(lifespan, popsize, mutationRate, pruneSaveRate, pruneMutateR
   this.minFitness = Infinity;
   this.paused = false;
   this.render = true;
+  this.renderStats = true;
   this.generation = 1;
   this.newChildren = this.popsize;
   this.previousMaxFitness = 0;
@@ -41,6 +42,14 @@ function Population(lifespan, popsize, mutationRate, pruneSaveRate, pruneMutateR
    */
   this.toggleRender = function () {
     this.render = !this.render;
+    return this.render;
+  }
+
+  /**
+   * Turns on/off rendering of stats
+   */
+  this.toggleRenderStats = function () {
+    this.renderStats = !this.renderStats;
     return this.render;
   }
 
@@ -202,7 +211,9 @@ function Population(lifespan, popsize, mutationRate, pruneSaveRate, pruneMutateR
     if (this.render) {
       // Draw generation info and stats to canvas
       this.drawInfo();
-      this.drawStats();
+      if (this.renderStats) {
+        this.drawStats();
+      }
     } else {
       // If not currently rendering simulation, just display current generation in center of screen
       push();
