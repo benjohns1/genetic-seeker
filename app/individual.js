@@ -55,7 +55,7 @@ function Individual(lifespan, mutationRate, dna) {
 
     if (this.tickStuck) {
       // Individual stuck, penalty
-      this.fitness /= 2;
+      this.fitness /= stuckPenaltyDivisor;
       return;
     }
   }

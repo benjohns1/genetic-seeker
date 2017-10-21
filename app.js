@@ -7,6 +7,7 @@ let dampenVelocityRate = 0.99;// rate that velocity is dampened per tick
 let pruneSaveRate = 0.4;      // while pruning population between generations, probability that a below-average individual will be saved for next generation
 let pruneMutateRate = 0.01;   // while pruning, probability that a saved individual may be mutated
 let mutationRate = 0.03;      // when a new child individual is created, probability that a gene will mutate
+let stuckPenaltyDivisor = 5;  // fitness is divided by this when bubble hits wall or obstacle
 
 // Minimum canvas size
 let minWidth = 600;
