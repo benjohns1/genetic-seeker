@@ -86,7 +86,7 @@ function Individual(lifespan, mutationRate, dna) {
     }
 
     // Add acceleration vector and update velocity/position
-    this.acc.add(this.dna.genes[tick]);
+    this.acc.add(this.dna.getGene(tick));
     this.vel.mult(dampenVelocityRate); // dampen velocity
     this.vel.add(this.acc);
     this.pos.add(this.vel);

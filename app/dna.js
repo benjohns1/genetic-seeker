@@ -13,6 +13,14 @@ function DNA(lifespan, mutationRate, randomize) {
     }
   }
 
+  this.getGene = function (tick) {
+    if (tick >= this.genes.length) {
+      // Generate a random new gene if DNA is not long enough
+      this.genes[tick] = randomGene();
+    }
+    return this.genes[tick];
+  }
+
   /**
    * Cross this DNA with a partner DNA
    * Randomly chooses midpoint and uses left or right side of split genes from each parent respectively

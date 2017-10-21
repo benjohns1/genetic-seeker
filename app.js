@@ -29,7 +29,8 @@ function setup() {
   target = createVector(width - 100, 100);
 
   // Initial obstacle
-  rectangles.push(new ShapePolygon([[width / 2 - 200, height / 2 - 10], [width / 2 + 200, height / 2 - 10], [width / 2 + 200, height / 2 + 10], [width / 2 - 200, height / 2 + 10]]));
+  let cX = width / 2, cY = height / 2, cW = 30, cH = height / 4;
+  rectangles.push(new ShapePolygon([[cX - cW, cY - cH], [cX + cW, cY - cH], [cX + cW, cY + cH], [cX - cW, cY + cH]]));
 
   // Controls
   let x = width - 100, y = 10;
@@ -130,14 +131,27 @@ function draw() {
   // Draw controls
   push();
   fill(255, 255, 255);
+  cursor(setupPhase ? (keyIsDown(CONTROL) ? HAND : CROSS) : ARROW);
   if (population.paused) {
     controls.play.draw();
+    if (controls.play.inBounds(mouseX, mouseY)) {
+      cursor(HAND);
+    }
   } else {
     controls.pause.draw();
+    if (controls.pause.inBounds(mouseX, mouseY)) {
+      cursor(HAND);
+    }
   }
   controls.render.draw();
+  if (controls.render.inBounds(mouseX, mouseY)) {
+    cursor(HAND);
+  }
   if (render) {
     controls.renderStats.draw();
+    if (controls.renderStats.inBounds(mouseX, mouseY)) {
+      cursor(HAND);
+    }
   }
   if (setupPhase) {
     textAlign(CENTER);
